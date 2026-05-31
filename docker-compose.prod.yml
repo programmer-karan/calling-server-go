@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Production docker-compose with TURN server (Coturn) for NAT traversal.
+#
+# BEFORE DEPLOYING — replace these placeholders:
+#   YOUR_PUBLIC_IP   → your server's public IP (e.g. 34.56.78.90)
+#   YOUR_DOMAIN      → your domain (e.g. call.example.com)
+#   CHANGE_ME        → a strong TURN password
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Coturn TURN/STUN server ─────────────────────────────────────────────────
+  # Required for NAT traversal on mobile networks and behind firewalls.
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+    # network_mode: host is required so Coturn can bind UDP ports directly.
+    # If you can't use host mode, map these ports:
+    # ports:
+    #   - "3478:3478/udp"
+    #   - "3478:3478/tcp"
+    #   - "49152-65535:49152-65535/udp"
+
+  # ── WebRTC Signaling + SFU Server ──────────────────────────────────────────
+  webrtc-server:
+    build: .
+    container_name: webrtc-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Point clients to your Coturn TURN server for NAT traversal.
+      # Replace YOUR_PUBLIC_IP and CHANGE_ME with real values.
+      ICE_SERVERS: >-
+        [
+          {"urls": ["stun:YOUR_PUBLIC_IP:3478"]},
+          {
+            "urls": [
+              "turn:YOUR_PUBLIC_IP:3478?transport=udp",
+              "turn:YOUR_PUBLIC_IP:3478?transport=tcp"
+            ],
+            "username": "webrtcuser",
+            "credential": "CHANGE_ME"
+          }
+        ]
+    depends_on:
+      - coturn
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+
+  # ── Nginx reverse proxy (HTTPS) ────────────────────────────────────────────
+  # Browsers REQUIRE https for getUserMedia (camera/mic) on non-localhost.
+  # This handles SSL termination + WebSocket proxying.
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro  # Mount your SSL certs
+    depends_on:
+      - webrtc-server
