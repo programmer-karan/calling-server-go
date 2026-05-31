@@ -1,0 +1,16 @@
+# Go
+server
+*.exe
+*.test
+
+# Dart
+dart_client/.dart_tool/
+dart_client/.packages
+dart_client/pubspec.lock
+dart_client/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store

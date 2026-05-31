@@ -1,0 +1,14 @@
+name: calling_client
+description: WebRTC calling client for Flutter — P2P and SFU modes.
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_webrtc: ^0.12.0
+  web_socket_channel: ^3.0.0
+  http: ^1.2.0
