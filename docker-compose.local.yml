@@ -1,0 +1,24 @@
+# Local development: Go server + Coturn (STUN/TURN) on your Mac.
+# Usage: docker compose -f docker-compose.local.yml up -d
+
+services:
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn-local
+    restart: unless-stopped
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-49252:49152-49252/udp"
+    command:
+      - --listening-port=3478
+      - --min-port=49152
+      - --max-port=49252
+      - --lt-cred-mech
+      - --user=webrtcuser:webrtcpass
+      - --realm=local
+      - --log-file=stdout
+      - --verbose
+      - --no-tls
+      - --no-dtls
+      - --fingerprint

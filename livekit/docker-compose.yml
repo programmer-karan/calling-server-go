@@ -1,0 +1,19 @@
+# LiveKit Calling Server
+# Usage: docker compose -f livekit/docker-compose.yml up -d
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: livekit-server
+    restart: unless-stopped
+    ports:
+      - "7880:7880"     # HTTP + WebSocket signaling
+      - "7881:7881/tcp" # WebRTC over TCP
+      - "7882:7882/udp" # WebRTC over UDP
+      - "50000-50100:50000-50100/udp" # RTP media ports
+    command:
+      - --dev             # Dev mode: no external config needed
+      - --bind=0.0.0.0
+      - --node-ip=0.0.0.0
+    environment:
+      LIVEKIT_KEYS: "devkey: devsecret"
